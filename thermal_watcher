@@ -1,0 +1,122 @@
+#!/bin/sh
+
+# /sys/class/thermal/thermal_zone*
+# /sdcard/thermal.log
+# thermal temp files in thermal_zone*/temp
+########################################
+folder=/sys/class/thermal
+file_time=`date +%y_%m_%d`
+f=0
+fol=`pwd`
+file=${fol}/thermal_${file_time}_${f}.log
+echo " "
+echo " "
+########################################
+echo "*"
+echo "* Qualcomm temperature sensor recorder."
+echo "* For Qualcomm msm8974aa-ac,msm8994,apq8084."
+echo "* Author: a332574643@gmail.com."
+echo "* version 2.02"
+echo "*"
+########################################
+echo " "
+echo "please type record times,min count in once"
+read r_time
+echo "please type sampling time,min count in 1/s"
+read s_time
+echo "please type thresholds,min 1C,max not limit,only monitoring"
+read t_limit
+if [ ! -e ${file} ];then
+    touch ${file}
+else
+	for f in `seq 100`
+	do
+		file=${fol}/thermal_${file_time}_${f}.log
+		if [ -e ${file} ];then
+			continue;
+		else
+			break;
+		fi
+	done
+fi
+echo "Qualcomm temperature sensor recorder." >> ${file}
+echo "For Qualcomm msm8974aa-ac,msm8994,apq8084." >> ${file}
+echo "Author: a332574643@gmail.com." >> ${file}
+echo " " >> ${file}
+echo "maximum temp:xxxt @sensor_xxxs @time:xxxt @record-time" >> ${file}
+clear
+mhther=0
+ww="temp:xxxt"
+qq="ensor_xxxs"
+tt="ime:xxxt"
+rtc="record-time"
+for t in `seq ${r_time}`
+do 	
+	clear
+	echo " " >> ${file}
+	time=`date +%m-%d\ \%T`
+	timec=`date +%T`
+	echo "########### record@${t} time now: ${time} ##############"
+	echo "########### record@${t} time now: ${time} ##############" >> ${file}
+	for i in `seq 100`
+	do
+		c=`expr ${i} - 1`
+		if [  ! -e ${folder}/thermal_zone${c} ];then
+			  break;
+		fi
+		
+		if [ ${c} -eq "11" ] || [ ${c} -eq "14" ];then
+			continue
+		fi
+		
+		thermal=`cat ${folder}/thermal_zone${c}/temp`
+		if(("${thermal}" > "${mhther}"));then
+			mhther=${thermal}
+		sed -i -e s/${ww}/temp:${thermal}C/ -i -e 1,6s/${qq}/ensor_${c}/ -i -e s/${tt}/ime:${timec}/ -i -e 1,6s/${rtc}/record-${t}/ ${file}
+		ww="temp:${thermal}C"
+		qq="ensor_${c}"
+		tt="ime:${timec}"
+		rtc="record-${t}"
+		fi	
+		if(("${thermal}" >= "${t_limit}"));then
+			temp=\#\ sensor_${c}\ \warning_temp:\ ${thermal}C
+			else
+			temp=\#\ sensor_${c}\ \temp:\ ${thermal}C
+		fi
+	
+		echo ${temp}
+		echo ${temp} >> ${file}
+	done
+	echo "############################################################"
+	echo "############################################################" >> ${file}
+	if((${r_time} <= 1));then
+		continue
+	else
+		sleep ${s_time};
+		te=`expr ${t} + 1`
+		if [ ${te} -eq ${r_time} ];then
+			echo " "
+			echo " "
+			echo " " >> ${file}
+			echo " " >> ${file}
+		else
+			echo " " >> ${file}
+			echo " "
+		fi
+	fi
+done
+let rc_time="${r_time} * ${s_time}"
+echo "############################################################"
+echo "############################################################" >> ${file}
+echo "record time is ${rc_time} secs."
+echo "sampling time is ${s_time}/s"
+echo "thresholds temp is ${t_limit}C"
+echo "count sensors is ${c}"
+echo "record files here:"
+echo "${file}"
+echo "############################################################"
+echo "record time is ${rc_time} secs." >> ${file}
+echo "sampling time is ${s_time}/s" >> ${file}
+echo "thresholds temp is ${t_limit}C" >> ${file}
+echo "count sensors is ${c}"  >> ${file}
+echo "############################################################" >> ${file}
